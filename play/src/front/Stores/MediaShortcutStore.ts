@@ -9,20 +9,37 @@ const defaults: Record<MediaShortcutAction, MediaShortcut> = {
     camera: { key: "KeyP", ctrlKey: false, altKey: false, shiftKey: false, metaKey: false },
 };
 
+// Elements where a key press is text being typed, not a shortcut
+const TYPING_SELECTOR = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]';
+
 export const mediaShortcutRebindingStore = writable(false);
 
-function load(): Record<MediaShortcutAction, MediaShortcut> {
+// Keys with fixed bindings in GameSceneUserInputHandler / UserInputManager / EmojiSubMenu, whatever the modifiers.
+const reservedKeys = new Set([
+    ...["KeyW", "KeyA", "KeyS", "KeyD", "KeyZ", "KeyQ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"],
+    ...["Space", "Enter", "Escape", "KeyE", "KeyR", "KeyC", "KeyU", "KeyF"],
+    // Closes the map editor / moves the focus
+    ...["Backquote", "Tab"],
+    ...[1, 2, 3, 4, 5, 6].flatMap((n) => [`Digit${n}`, `F${n}`]),
+]);
+export function isReservedShortcut(shortcut: MediaShortcut): boolean {
+    return reservedKeys.has(shortcut.key);
+}
+
+// A saved shortcut that has since become reserved falls back to the default.
+export function loadMediaShortcuts(): Record<MediaShortcutAction, MediaShortcut> {
     try {
         const value = JSON.parse(localStorage.getItem(storageKey) ?? "null") as Partial<
             Record<MediaShortcutAction, MediaShortcut>
         > | null;
-        return { ...defaults, ...value };
+        const saved = Object.entries(value ?? {}).filter(([, shortcut]) => !isReservedShortcut(shortcut));
+        return { ...defaults, ...Object.fromEntries(saved) };
     } catch {
         return { ...defaults };
     }
 }
 
-export const mediaShortcutsStore = writable(load());
+export const mediaShortcutsStore = writable(loadMediaShortcuts());
 export function getMediaShortcut(action: MediaShortcutAction): MediaShortcut {
     return get(mediaShortcutsStore)[action];
 }
@@ -32,16 +49,6 @@ const sameShortcut = (a: MediaShortcut, b: MediaShortcut) =>
     a.altKey === b.altKey &&
     a.shiftKey === b.shiftKey &&
     a.metaKey === b.metaKey;
-
-// Keys with fixed bindings in GameSceneUserInputHandler / UserInputManager / EmojiSubMenu, whatever the modifiers.
-const reservedKeys = new Set([
-    ...["KeyW", "KeyA", "KeyS", "KeyD", "KeyZ", "KeyQ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"],
-    ...["Space", "Enter", "Escape", "KeyE", "KeyR", "KeyC", "KeyU", "KeyF"],
-    ...[1, 2, 3, 4, 5, 6].flatMap((n) => [`Digit${n}`, `F${n}`]),
-]);
-export function isReservedShortcut(shortcut: MediaShortcut): boolean {
-    return reservedKeys.has(shortcut.key);
-}
 
 // Rebinding to a shortcut owned by another action swaps them, so no shortcut is ever bound twice.
 // Returns false (and changes nothing) when the shortcut is reserved by a fixed binding.
@@ -64,5 +71,18 @@ export function mediaShortcutMatches(event: KeyboardEvent, shortcut: MediaShortc
         event.altKey === shortcut.altKey &&
         event.shiftKey === shortcut.shiftKey &&
         event.metaKey === shortcut.metaKey
+    );
+}
+
+/**
+ * The media action bound to this key press, or undefined when the key is typed in a text field
+ * or while a shortcut is being recorded.
+ */
+export function findMediaShortcutAction(event: KeyboardEvent): MediaShortcutAction | undefined {
+    if (get(mediaShortcutRebindingStore)) return undefined;
+    if (event.target instanceof Element && event.target.closest(TYPING_SELECTOR) !== null) return undefined;
+    const shortcuts = get(mediaShortcutsStore);
+    return (Object.keys(shortcuts) as MediaShortcutAction[]).find((action) =>
+        mediaShortcutMatches(event, shortcuts[action]),
     );
 }

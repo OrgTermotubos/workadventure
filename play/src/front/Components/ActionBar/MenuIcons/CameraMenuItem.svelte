@@ -24,10 +24,6 @@
         toggleMedia,
     } from "../../../Stores/MediaToggleStore";
 
-    function isAvailabilityStatusOnline(status: AvailabilityStatus): boolean {
-        return status === AvailabilityStatus.ONLINE;
-    }
-
     const cameraToggleAvailableStore = createMediaToggleAvailableStore("camera");
 
     const disabledByStatusStore = derived(
@@ -109,7 +105,7 @@
     desc={$cameraActionBarTooltipStore.desc}
     media={$cameraActionBarTooltipStore.media}
     onmouseenter={() => {
-        if (isAvailabilityStatusOnline($availabilityStatusStore)) mouseIsHoveringCameraButton.set(true);
+        if ($availabilityStatusStore === AvailabilityStatus.ONLINE) mouseIsHoveringCameraButton.set(true);
         else mouseIsHoveringCameraButton.set(false);
     }}
     onmouseleave={() => mouseIsHoveringCameraButton.set(false)}

@@ -20,8 +20,8 @@ import { followRoleStore, followStateStore, followUsersStore } from "../../Store
 import { localUserStore } from "../../Connection/LocalUserStore";
 import { isKeyFromInteractiveElement } from "../../Utils/isKeyFromInteractiveElement";
 import { waScaleManager } from "../Services/WaScaleManager";
-import { getMediaShortcut, mediaShortcutMatches, mediaShortcutRebindingStore } from "../../Stores/MediaShortcutStore";
-import { isMediaToggleAvailable, toggleMedia } from "../../Stores/MediaToggleStore";
+import { findMediaShortcutAction } from "../../Stores/MediaShortcutStore";
+import { toggleMedia } from "../../Stores/MediaToggleStore";
 import { MapDragPointerCapture } from "./MapDragPointerCapture";
 import { MapDragGesture } from "./MapDragGesture";
 import { MapPanShortcut } from "./MapPanShortcut";
@@ -367,23 +367,10 @@ export class GameSceneUserInputHandler implements UserInputHandlerInterface {
         }
     }
     public handleKeyDownEvent(event: KeyboardEvent): KeyboardEvent {
-        if (
-            get(mediaShortcutRebindingStore) ||
-            event.target instanceof HTMLInputElement ||
-            event.target instanceof HTMLTextAreaElement ||
-            event.target instanceof HTMLSelectElement ||
-            (event.target instanceof HTMLElement && event.target.isContentEditable)
-        ) {
-            return event;
-        }
-        if (mediaShortcutMatches(event, getMediaShortcut("microphone")) && isMediaToggleAvailable("microphone")) {
+        const mediaShortcutAction = findMediaShortcutAction(event);
+        if (mediaShortcutAction !== undefined) {
             event.preventDefault();
-            toggleMedia("microphone");
-            return event;
-        }
-        if (mediaShortcutMatches(event, getMediaShortcut("camera")) && isMediaToggleAvailable("camera")) {
-            event.preventDefault();
-            toggleMedia("camera");
+            toggleMedia(mediaShortcutAction);
             return event;
         }
         const hasExecutedCommand = this.gameScene.getMapEditorModeManager()?.handleKeyDownEvent(event);
