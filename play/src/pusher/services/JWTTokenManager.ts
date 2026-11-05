@@ -68,9 +68,10 @@ export class JWTTokenManager {
         tags?: string[],
         matrixUserId?: string,
         encryptedRefreshToken?: string,
+        expiration: string | number = "30d",
     ): Promise<string> {
         return new SignJWT({ identifier, accessToken, username, locale, tags, matrixUserId, encryptedRefreshToken })
-            .setExpirationTime("30d")
+            .setExpirationTime(expiration)
             .setProtectedHeader({ alg: "HS256" })
             .sign(secret);
     }

@@ -192,6 +192,15 @@ export const ANALYTICS_MAX_QUEUE_SIZE: number = env.ANALYTICS_MAX_QUEUE_SIZE;
 export const ANALYTICS_MAX_BATCH_SIZE: number = env.ANALYTICS_MAX_BATCH_SIZE;
 export const DRAIN_TIMEOUT_MS: number = env.DRAIN_TIMEOUT_MS;
 
+function withoutTrailingSlash(value: string | undefined): string {
+    return (value ?? "").trim().replace(/\/+$/, "");
+}
+
+export const TERMOAUTH_URL = withoutTrailingSlash(env.TERMOAUTH_URL);
+export const TERMOAUTH_API_URL = withoutTrailingSlash(env.TERMOAUTH_API_URL);
+export const TERMOAUTH_APP_ID = (env.TERMOAUTH_APP_ID ?? "").trim();
+export const TERMOAUTH_ENABLED = TERMOAUTH_URL !== "" && TERMOAUTH_API_URL !== "" && TERMOAUTH_APP_ID !== "";
+
 // Front container:
 export const FRONT_ENVIRONMENT_VARIABLES: FrontConfigurationInterface = {
     DEBUG_MODE: env.DEBUG_MODE,
@@ -215,6 +224,9 @@ export const FRONT_ENVIRONMENT_VARIABLES: FrontConfigurationInterface = {
     POSTHOG_URL: env.POSTHOG_URL,
     DISABLE_ANONYMOUS,
     ENABLE_OPENID: !!env.OPENID_CLIENT_ID || !!env.OPID_CLIENT_ID,
+    ENABLE_TERMOAUTH: TERMOAUTH_ENABLED,
+    TERMOAUTH_URL: TERMOAUTH_URL || undefined,
+    TERMOAUTH_APP_ID: TERMOAUTH_APP_ID || undefined,
     OPID_PROFILE_SCREEN_PROVIDER: env.OPENID_PROFILE_SCREEN_PROVIDER || env.OPID_PROFILE_SCREEN_PROVIDER,
     OPID_WOKA_NAME_POLICY,
     ENABLE_CHAT_UPLOAD,

@@ -10,6 +10,13 @@ import Debug from "debug";
 import type { AuthTokenData } from "../services/JWTTokenManager";
 import { jwtTokenManager } from "../services/JWTTokenManager";
 import { openIDClient } from "../services/OpenIDClient";
+import {
+    createWorkAdventureSession,
+    handoffRedirectForHost,
+    isTermoAuthEnabled,
+    signOutRedirectForHost,
+    TermoAuthError,
+} from "../services/TermoAuthClient";
 import { DISABLE_ANONYMOUS, FRONT_URL, MATRIX_PUBLIC_URI, PUSHER_URL } from "../enums/EnvironmentVariable";
 import { adminService } from "../services/AdminService";
 import { validateQuery } from "../services/QueryValidator";
@@ -66,6 +73,7 @@ export class AuthenticateController extends BaseHttpController {
         this.matrixCallback();
         this.logoutCallback();
         this.anonymLogin();
+        this.termoAuthSession();
         this.profileCallback();
         this.logoutUser();
     }
@@ -121,6 +129,11 @@ export class AuthenticateController extends BaseHttpController {
             if (!verifyDomainResult) {
                 res.status(403);
                 res.send("Unauthorized domain in playUri");
+                return;
+            }
+
+            if (isTermoAuthEnabled()) {
+                res.redirect(handoffRedirectForHost(new URL(query.playUri).hostname));
                 return;
             }
 
@@ -452,7 +465,7 @@ export class AuthenticateController extends BaseHttpController {
         this.app.post("/anonymLogin", async (req, res) => {
             debug(`AuthenticateController => [${req.method}] ${req.originalUrl} — IP: ${req.ip} — Time: ${Date.now()}`);
             // We refuse the anonymous login if the anonymous mode is disabled AND that the default woka name is not set
-            if (DISABLE_ANONYMOUS) {
+            if (DISABLE_ANONYMOUS || isTermoAuthEnabled()) {
                 res.status(403).send("");
                 return;
             } else {
@@ -583,6 +596,11 @@ export class AuthenticateController extends BaseHttpController {
                 return;
             }
 
+            if (isTermoAuthEnabled()) {
+                res.redirect(signOutRedirectForHost(new URL(query.playUri).hostname));
+                return;
+            }
+
             const authTokenData: AuthTokenData = await jwtTokenManager.verifyJWTToken(query.token, false);
             if (authTokenData.accessToken == undefined) {
                 throw Error("Cannot log out, no access token found.");
@@ -608,4 +626,43 @@ export class AuthenticateController extends BaseHttpController {
             res.redirect(query.redirect);
         });
     }
+
+    private termoAuthSession(): void {
+        this.app.post("/termoauth-session", async (req, res) => {
+            debug(`AuthenticateController => [${req.method}] ${req.originalUrl} — IP: ${req.ip} — Time: ${Date.now()}`);
+            if (!isTermoAuthEnabled()) {
+                res.status(404).send("");
+                return;
+            }
+
+            const body = z.object({ token: z.string().min(1) }).safeParse(req.body);
+            if (!body.success) {
+                res.status(400).send("Missing token");
+                return;
+            }
+
+            try {
+                const authToken = await createWorkAdventureSession(body.data.token, pageHost(req));
+                res.json({ authToken });
+            } catch (error) {
+                if (error instanceof TermoAuthError) {
+                    res.status(error.status).send(error.message);
+                    return;
+                }
+                throw error;
+            }
+        });
+    }
+}
+
+function pageHost(req: { get(name: string): string | undefined; hostname: string }): string {
+    const origin = req.get("origin") ?? req.get("referer");
+    if (origin) {
+        try {
+            return new URL(origin).hostname;
+        } catch {
+            // The caller sent an origin we cannot parse. Fall back to the request host.
+        }
+    }
+    return req.hostname;
 }

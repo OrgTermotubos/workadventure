@@ -6,7 +6,7 @@
     import { derived, get } from "svelte/store";
     import { analyticsClient } from "../../../Administration/AnalyticsClient";
     import { connectionManager } from "../../../Connection/ConnectionManager";
-    import { ENABLE_OPENID, SENTRY_DSN_FRONT } from "../../../Enum/EnvironmentVariable";
+    import { ENABLE_OPENID, ENABLE_TERMOAUTH, SENTRY_DSN_FRONT } from "../../../Enum/EnvironmentVariable";
     import { gameManager } from "../../../Phaser/Game/GameManager";
     import { EnableCameraScene, EnableCameraSceneName } from "../../../Phaser/Login/EnableCameraScene";
     import { LoginScene, LoginSceneName } from "../../../Phaser/Login/LoginScene";
@@ -257,7 +257,7 @@
             </div>
         </button>
 
-        {#if ENABLE_OPENID && $userIsConnected}
+        {#if (ENABLE_OPENID || ENABLE_TERMOAUTH) && $userIsConnected}
             <button
                 onclick={() => {
                     analyticsClient.trackAdminEvent("auth.logout_clicked");

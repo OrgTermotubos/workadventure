@@ -23,6 +23,10 @@ export const CLIENT_DISCONNECTION_RETENTION_MS = 30_000;
 export const PUSHER_ADMIN_WS_MAX_BACKPRESSURE_BYTES = 1024 * 1024;
 export const ALLOWED_CORS_ORIGIN: string | undefined = undefined;
 export const PUSHER_URL = "http://pusher.test";
+export const TERMOAUTH_URL = "";
+export const TERMOAUTH_API_URL = "";
+export const TERMOAUTH_APP_ID = "";
+export const TERMOAUTH_ENABLED = false;
 export const FRONT_URL = "http://front.test";
 export const ASSETS_URL: string | undefined = undefined;
 export const ASSETS_INTERNAL_URL: string | undefined = undefined;
@@ -136,6 +140,9 @@ export const FRONT_ENVIRONMENT_VARIABLES: FrontConfigurationInterface = {
     POSTHOG_URL: undefined,
     DISABLE_ANONYMOUS,
     ENABLE_OPENID: false,
+    ENABLE_TERMOAUTH: false,
+    TERMOAUTH_URL: undefined,
+    TERMOAUTH_APP_ID: undefined,
     OPID_PROFILE_SCREEN_PROVIDER: undefined,
     OPID_WOKA_NAME_POLICY,
     ENABLE_CHAT_UPLOAD,

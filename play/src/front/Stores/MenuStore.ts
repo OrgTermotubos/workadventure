@@ -8,6 +8,7 @@ import { ABSOLUTE_PUSHER_URL } from "../Enum/ComputedConst";
 import {
     CONTACT_URL,
     ENABLE_OPENID,
+    ENABLE_TERMOAUTH,
     ENABLE_REPORT_ISSUES_MENU,
     OPID_PROFILE_SCREEN_PROVIDER,
     REPORT_ISSUES_URL,
@@ -357,7 +358,7 @@ export const rightActionBarMenuItems: Readable<RightMenuItem<RightActionBarButto
         if ($inviteUserActivated) {
             menuItems.push(inviteMenuItem);
         }
-        if (!$userIsConnected && ENABLE_OPENID) {
+        if (!$userIsConnected && (ENABLE_OPENID || ENABLE_TERMOAUTH)) {
             menuItems.push(loginMenuItem);
         }
 

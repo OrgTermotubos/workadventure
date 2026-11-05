@@ -6,6 +6,7 @@ import { analyticsClient } from "../../Administration/AnalyticsClient";
 import { isUserNameTooLong, isUserNameValid } from "../../Connection/LocalUserUtils";
 import { NameNotValidError, NameTooLongError } from "../../Exception/NameError";
 import { hasCapability } from "../../Connection/Capabilities";
+import { ENABLE_TERMOAUTH } from "../../Enum/EnvironmentVariable";
 import { ResizableScene } from "./ResizableScene";
 
 export const LoginSceneName = "LoginScene";
@@ -28,7 +29,7 @@ export class LoginScene extends ResizableScene {
         if (
             localUserStore.getAuthToken() == undefined &&
             gameManager.currentStartedRoom &&
-            gameManager.currentStartedRoom.authenticationMandatory
+            (gameManager.currentStartedRoom.authenticationMandatory || ENABLE_TERMOAUTH)
         ) {
             const redirect = connectionManager.loadOpenIDScreen(false);
             if (redirect !== null) {

@@ -12,7 +12,7 @@ import { userIsConnected, warningBannerStore } from "../Stores/MenuStore";
 import { loginSceneVisibleIframeStore } from "../Stores/LoginSceneStore";
 import { _ServiceWorker } from "../Network/ServiceWorker";
 import { GameConnexionTypes, urlManager } from "../Url/UrlManager";
-import { ENABLE_OPENID } from "../Enum/EnvironmentVariable";
+import { ENABLE_OPENID, ENABLE_TERMOAUTH } from "../Enum/EnvironmentVariable";
 import { limitMapStore } from "../Stores/GameStore";
 import { showLimitRoomModalStore } from "../Stores/ModalStore";
 import { gameManager } from "../Phaser/Game/GameManager";
@@ -35,6 +35,12 @@ import type { OnConnectInterface } from "./ConnexionModels";
 import { RoomConnection } from "./RoomConnection";
 import { HtmlUtils } from "./../WebRtc/HtmlUtils";
 import { hasCapability } from "./Capabilities";
+import {
+    acceptTermoAuthReturn,
+    TermoAuthExchangeError,
+    termoAuthHandoffLocation,
+    termoAuthSignOutLocation,
+} from "./TermoAuthLogin";
 
 const connectionRetryBaseDelayMs = 1_000;
 const connectionRetryMaxDelayMs = 10_000;
@@ -86,7 +92,7 @@ class ConnectionManager {
      */
     public loadOpenIDScreen(manuallyTriggered: boolean, providerId?: string, providerScopes?: string[]): URL | null {
         localUserStore.setAuthToken(null);
-        if (!ENABLE_OPENID || !this._currentRoom) {
+        if ((!ENABLE_OPENID && !ENABLE_TERMOAUTH) || !this._currentRoom) {
             analyticsClient.trackAdminEvent("auth.logged_token");
             loginSceneVisibleIframeStore.set(false);
             return null;
@@ -119,6 +125,17 @@ class ConnectionManager {
         //user logout, set connected store for menu at false (actually don't do it because we are going to redirect and
         // it shortly displays the "sign in" button before redirect happens)
         //userIsConnected.set(false);
+
+        if (ENABLE_TERMOAUTH) {
+            gameManager
+                .logout()
+                .catch((e) => {
+                    console.error(e);
+                    Sentry.captureException(e);
+                })
+                .finally(() => window.location.assign(termoAuthSignOutLocation()));
+            return;
+        }
 
         // check if we are in a room
         if (!ENABLE_OPENID || !this._currentRoom) {
@@ -157,6 +174,21 @@ class ConnectionManager {
     > {
         this.connexionType = urlManager.getGameConnexionType();
         this._currentRoom = null;
+
+        try {
+            const exchanged = await acceptTermoAuthReturn();
+            if (exchanged) {
+                this.authToken = exchanged;
+            }
+        } catch (error) {
+            if (error instanceof TermoAuthExchangeError && error.status === 401) {
+                return new URL(termoAuthHandoffLocation());
+            }
+            return {
+                nextScene: "errorScene",
+                error: error instanceof Error ? error : new Error("TermoAuth login failed"),
+            };
+        }
 
         let nextScene: "selectCharacterScene" | "selectCompanionScene" | "gameScene" = "gameScene";
 
@@ -243,7 +275,10 @@ class ConnectionManager {
             if (!this.authToken) {
                 const defaultWokaName = this._currentRoom.defaultWokaName;
 
-                if (!this._currentRoom.authenticationMandatory || defaultWokaName !== undefined) {
+                if (
+                    !ENABLE_TERMOAUTH &&
+                    (!this._currentRoom.authenticationMandatory || defaultWokaName !== undefined)
+                ) {
                     await this.anonymousLogin();
 
                     const characterTextures = localUserStore.getCharacterTextures();
@@ -300,7 +335,7 @@ class ConnectionManager {
                     if (isAxiosError(err) && err.response?.status === 401) {
                         console.warn("Token expired, trying to login anonymously");
                         // if the user must be connected to the current room or if the pusher error is not openid provider access error
-                        if (this._currentRoom.authenticationMandatory) {
+                        if (this._currentRoom.authenticationMandatory || ENABLE_TERMOAUTH) {
                             const redirect = this.loadOpenIDScreen(false);
                             if (redirect === null) {
                                 throw new Error("Unable to redirect on login page.", { cause: err });

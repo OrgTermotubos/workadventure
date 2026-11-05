@@ -53,6 +53,7 @@ import {
     ENABLE_CHAT_DISCONNECTED_LIST,
     ENABLE_MAP_EDITOR,
     ENABLE_OPENID,
+    ENABLE_TERMOAUTH,
     MAX_PER_GROUP,
     POSITION_DELAY,
     PUBLIC_MAP_STORAGE_PREFIX,
@@ -3771,7 +3772,7 @@ ${escapedMessage}
         });
 
         iframeListener.registerAnswerer("goToLogin", () => {
-            if (!ENABLE_OPENID) {
+            if (!ENABLE_OPENID && !ENABLE_TERMOAUTH) {
                 throw new Error("Cannot access login page. OpenID connect must configured first.");
             }
             scriptUtils.goToPage("/login");

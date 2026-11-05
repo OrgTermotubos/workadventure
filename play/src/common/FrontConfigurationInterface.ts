@@ -22,6 +22,9 @@ export interface FrontConfigurationInterface {
     POSTHOG_URL: string | undefined;
     DISABLE_ANONYMOUS: boolean;
     ENABLE_OPENID: boolean;
+    ENABLE_TERMOAUTH: boolean;
+    TERMOAUTH_URL: string | undefined;
+    TERMOAUTH_APP_ID: string | undefined;
     OPID_PROFILE_SCREEN_PROVIDER: string | undefined;
     ENABLE_CHAT_UPLOAD: boolean;
     FALLBACK_LOCALE: string | undefined;

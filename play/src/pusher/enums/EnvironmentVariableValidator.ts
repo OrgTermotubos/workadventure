@@ -243,6 +243,15 @@ export const EnvironmentVariables = z.object({
         "Policy for avatar naming: 'user_input', 'allow_override_opid', or 'force_opid'",
     ),
     OPENID_TAGS_CLAIM: z.string().optional().describe("JWT claim containing user tags/roles"),
+    TERMOAUTH_URL: z
+        .string()
+        .optional()
+        .describe("TermoAuth front URL. Tokens are issued with this value as iss and aud."),
+    TERMOAUTH_API_URL: z
+        .string()
+        .optional()
+        .describe("TermoAuth API URL. The public signing keys are fetched from /.well-known/jwks.json here."),
+    TERMOAUTH_APP_ID: z.string().optional().describe("TermoAuth app id sent as ?app= on the handoff."),
 
     DISABLE_ANONYMOUS: BoolAsString.optional()
         .transform((val) => toBool(val, false))
